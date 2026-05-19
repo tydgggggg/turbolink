@@ -1,0 +1,481 @@
+name: TurboLink Auto Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.22.0"
+
+      - name: Create Flutter Project
+        run: |
+          flutter create .
+
+      - name: Add Packages
+        run: |
+          sed -i '/dependencies:/a\
+            file_picker: ^8.0.0\
+            google_fonts: ^6.2.1' pubspec.yaml
+
+      - name: Create App Code
+        run: |
+
+          cat > lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          import 'package:file_picker/file_picker.dart';
+          import 'package:google_fonts/google_fonts.dart';
+
+          void main() {
+            runApp(const TurboLinkApp());
+          }
+
+          class TurboLinkApp extends StatelessWidget {
+            const TurboLinkApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'TurboLink',
+                theme: ThemeData(
+                  brightness: Brightness.dark,
+                  scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+                  textTheme: GoogleFonts.poppinsTextTheme(
+                    ThemeData.dark().textTheme,
+                  ),
+                ),
+                home: const SplashScreen(),
+              );
+            }
+          }
+
+          class SplashScreen extends StatefulWidget {
+            const SplashScreen({super.key});
+
+            @override
+            State<SplashScreen> createState() => _SplashScreenState();
+          }
+
+          class _SplashScreenState extends State<SplashScreen> {
+
+            @override
+            void initState() {
+              super.initState();
+
+              Future.delayed(
+                const Duration(seconds: 2),
+                () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HomeScreen(),
+                    ),
+                  );
+                },
+              );
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+                    children: [
+
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(30),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF00D1FF),
+                              Color(0xFFB026FF),
+                            ],
+                          ),
+                        ),
+
+                        child: const Center(
+                          child: Text(
+                            '⚡',
+                            style: TextStyle(
+                              fontSize: 60,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      const Text(
+                        'TurboLink',
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+
+          class HomeScreen extends StatelessWidget {
+            const HomeScreen({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('TurboLink'),
+                  backgroundColor: Colors.transparent,
+                ),
+
+                body: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+
+                      Expanded(
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          children: [
+
+                            buildCard(
+                              context,
+                              '⚡ SEND',
+                              Colors.cyan,
+                              const SendScreen(),
+                            ),
+
+                            buildCard(
+                              context,
+                              '📥 RECEIVE',
+                              Colors.purple,
+                              const ReceiveScreen(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            Widget buildCard(
+              BuildContext context,
+              String title,
+              Color color,
+              Widget page,
+            ) {
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => page,
+                    ),
+                  );
+                },
+
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(25),
+                    color: color.withOpacity(0.2),
+                    border: Border.all(
+                      color: color,
+                    ),
+                  ),
+
+                  child: Center(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          class SendScreen extends StatefulWidget {
+            const SendScreen({super.key});
+
+            @override
+            State<SendScreen> createState() =>
+                _SendScreenState();
+          }
+
+          class _SendScreenState
+              extends State<SendScreen> {
+
+            String fileName =
+                "No file selected";
+
+            Future<void> pickFile() async {
+
+              FilePickerResult? result =
+                  await FilePicker.platform
+                      .pickFiles();
+
+              if (result != null) {
+                setState(() {
+                  fileName =
+                      result.files.single.name;
+                });
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+
+              return Scaffold(
+                appBar: AppBar(
+                  title:
+                      const Text("Send Files"),
+                ),
+
+                body: Padding(
+                  padding:
+                      const EdgeInsets.all(24),
+
+                  child: Column(
+                    children: [
+
+                      GestureDetector(
+                        onTap: pickFile,
+
+                        child: Container(
+                          height: 220,
+
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(
+                                    30),
+
+                            color: const Color(
+                                0xFF161616),
+
+                            border: Border.all(
+                              color: Colors.cyan,
+                            ),
+                          ),
+
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment:
+                                  MainAxisAlignment
+                                      .center,
+
+                              children: [
+
+                                const Text(
+                                  '📁',
+                                  style: TextStyle(
+                                    fontSize: 70,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                    height: 15),
+
+                                Text(
+                                  fileName,
+                                  style:
+                                      const TextStyle(
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TransferScreen(),
+                              ),
+                            );
+                          },
+
+                          child: const Text(
+                            "START TRANSFER",
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+
+          class ReceiveScreen extends StatelessWidget {
+            const ReceiveScreen({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+
+              return Scaffold(
+                appBar: AppBar(
+                  title:
+                      const Text("Receive"),
+                ),
+
+                body: const Center(
+                  child: Text(
+                    "Waiting For Sender...",
+                    style: TextStyle(
+                      fontSize: 28,
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          class TransferScreen
+              extends StatefulWidget {
+
+            const TransferScreen({
+              super.key,
+            });
+
+            @override
+            State<TransferScreen>
+                createState() =>
+                    _TransferScreenState();
+          }
+
+          class _TransferScreenState
+              extends State<TransferScreen> {
+
+            double progress = 0;
+
+            @override
+            void initState() {
+              super.initState();
+
+              fakeTransfer();
+            }
+
+            void fakeTransfer() async {
+
+              while (progress < 1) {
+
+                await Future.delayed(
+                  const Duration(
+                    milliseconds: 200,
+                  ),
+                );
+
+                setState(() {
+                  progress += 0.02;
+                });
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+
+              return Scaffold(
+                appBar: AppBar(
+                  title:
+                      const Text("Transfer"),
+                ),
+
+                body: Padding(
+                  padding:
+                      const EdgeInsets.all(24),
+
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+
+                    children: [
+
+                      const Text(
+                        "⚡",
+                        style: TextStyle(
+                          fontSize: 80,
+                        ),
+                      ),
+
+                      const SizedBox(
+                          height: 30),
+
+                      LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 18,
+                      ),
+
+                      const SizedBox(
+                          height: 20),
+
+                      Text(
+                        "${(progress * 100).toInt()}%",
+                        style: const TextStyle(
+                          fontSize: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+          EOF
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurboLink-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
